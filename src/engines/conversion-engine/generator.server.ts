@@ -56,12 +56,13 @@ Resultados esperados: ${extracted.outcomes.join(" | ") || "(inferir)"}
 
 Genera el contenido completo de la landing page de venta.`;
 
-  const { experimental_output } = await generateText({
+  const result = await generateText({
     model,
     system,
     prompt,
     experimental_output: Output.object({ schema: LandingSchema }),
   });
 
-  return experimental_output as LandingContent;
+  // AI SDK v6 exposes structured output on `experimental_output`
+  return (result as unknown as { experimental_output: LandingContent }).experimental_output;
 }
