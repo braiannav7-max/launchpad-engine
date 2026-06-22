@@ -1,4 +1,4 @@
-import { generateText, Output } from "ai";
+import { generateObject, generateText } from "ai";
 import { z } from "zod";
 import { createLovableAiGatewayProvider } from "@/lib/ai-gateway.server";
 import type { ExtractedContent, LandingContent } from "./types";
@@ -57,28 +57,89 @@ Resultados esperados: ${extracted.outcomes.join(" | ") || "(inferir)"}
 
 Genera el contenido completo de la landing page de venta.`;
 
-  let result;
+  // Intento 1: generateObject (response_format json_object + parse).
   try {
-    result = await generateText({
-    model,
-    system,
-    prompt,
-    experimental_output: Output.object({ schema: LandingSchema }),
-    });
-  } catch (err) {
-    console.error("[conversion-engine] structured output failed:", err);
-    // Fallback: pedir JSON libre y parsear
-    const fallback = await generateText({
+    const { object } = await generateObject({
       model,
-      system:
-        system +
-        "\n\nResponde EXCLUSIVAMENTE con un objeto JSON válido (sin markdown, sin ```), con estas claves: headline, subheadline, cta, ctaSecondary, problemTitle, problemDescription, painPoints (array de strings), solutionTitle, solutionDescription, benefits (array de strings), includes (array de objetos {title, description}), outcomes (array de strings), faq (array de objetos {q, a}), guaranteeTitle, guaranteeText, finalCtaTitle.",
+      schema: LandingSchema,
+      system,
       prompt,
     });
-    const text = fallback.text.trim().replace(/^```json\s*|\s*```$/g, "");
-    const parsed = JSON.parse(text);
-    return LandingSchema.parse(parsed) as LandingContent;
+    return object as LandingContent;
+  } catch (err) {
+    console.error("[conversion-engine] generateObject failed:", err);
   }
 
-  return result.experimental_output as LandingContent;
+  // Fallback: pedir JSON crudo + parse robusto.
+  const fallback = await generateText({
+    model,
+    system:
+      system +
+      '\n\nResponde EXCLUSIVAMENTE con un objeto JSON válido. Sin markdown, sin texto antes ni después, sin comentarios. Escapa correctamente las comillas dentro de strings (usa \\"). Claves: headline, subheadline, cta, ctaSecondary, problemTitle, problemDescription, painPoints (string[]), solutionTitle, solutionDescription, benefits (string[]), includes ({title,description}[]), outcomes (string[]), faq ({q,a}[]), guaranteeTitle, guaranteeText, finalCtaTitle.',
+    prompt,
+  });
+  const parsed = extractJson(fallback.text);
+  return LandingSchema.parse(parsed) as LandingContent;
+}
+
+function extractJson(raw: string): unknown {
+  let text = raw.trim();
+  // strip markdown fences
+  text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
+  // grab first { ... last }
+  const start = text.indexOf("{");
+  const end = text.lastIndexOf("}");
+  if (start !== -1 && end !== -1) text = text.slice(start, end + 1);
+  try {
+    return JSON.parse(text);
+  } catch {
+    // Reparación heurística: escapar comillas dentro de valores string.
+    const repaired = repairJsonStringQuotes(text);
+    return JSON.parse(repaired);
+  }
+}
+
+/**
+ * Repara comillas dobles no escapadas dentro de valores string del JSON.
+ * Recorre el texto carácter a carácter; cuando está dentro de un string,
+ * si encuentra una `"` que no cierra el string (no le sigue `,`, `}`, `]`, `:` o whitespace+esos),
+ * la escapa.
+ */
+function repairJsonStringQuotes(text: string): string {
+  let out = "";
+  let inStr = false;
+  let escape = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (escape) {
+      out += c;
+      escape = false;
+      continue;
+    }
+    if (c === "\\") {
+      out += c;
+      escape = true;
+      continue;
+    }
+    if (c === '"') {
+      if (!inStr) {
+        inStr = true;
+        out += c;
+      } else {
+        // ¿es realmente cierre? mira el siguiente non-space
+        let j = i + 1;
+        while (j < text.length && /\s/.test(text[j])) j++;
+        const next = text[j];
+        if (next === "," || next === "}" || next === "]" || next === ":" || j >= text.length) {
+          inStr = false;
+          out += c;
+        } else {
+          out += '\\"';
+        }
+      }
+      continue;
+    }
+    out += c;
+  }
+  return out;
 }
