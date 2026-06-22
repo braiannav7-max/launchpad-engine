@@ -84,7 +84,6 @@ Genera el contenido completo de la landing page de venta.`;
 
 function extractJson(raw: string): unknown {
   let text = raw.trim();
-  console.log("[conversion-engine] raw model output:\n" + raw);
   // strip markdown fences
   text = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```$/i, "");
   // grab first { ... last }
