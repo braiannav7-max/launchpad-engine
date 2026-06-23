@@ -1,7 +1,3 @@
-import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-
-const MAGNIFIC_MCP_URL = "https://mcp.magnific.com";
 const MAGNIFIC_API_KEY = process.env.MAGNIFIC_API_KEY;
 
 export async function generateHeroImage(meta: {
@@ -9,19 +5,40 @@ export async function generateHeroImage(meta: {
   subtitle?: string;
   niche?: string;
 }): Promise<string | null> {
-  if (!MAGNIFIC_API_KEY) return null;
+  if (MAGNIFIC_API_KEY) {
+    const url = await tryMagnific(meta);
+    if (url) return url;
+  }
+  return tryPollinations(meta);
+}
 
-  const prompt = buildImagePrompt(meta);
-  const transport = new StreamableHTTPClientTransport(new URL(MAGNIFIC_MCP_URL), {
-    headers: { Authorization: `Bearer ${MAGNIFIC_API_KEY}` },
-  });
+async function tryPollinations(meta: {
+  title: string; niche?: string;
+}): Promise<string | null> {
+  const prompt = `professional ebook cover hero, ${meta.niche || meta.title}, modern minimalist design, dark background with vibrant neon accents, dramatic lighting, cinematic quality, no text no words no letters`;
+  return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1200&height=800&seed=${Math.floor(Math.random() * 99999)}&nologo=true`;
+}
 
-  const client = new Client(
-    { name: "launchpad-engine", version: "1.0.0" },
-    { capabilities: {} },
-  );
-
+async function tryMagnific(meta: {
+  title: string; niche?: string;
+}): Promise<string | null> {
   try {
+    const { Client } = await import("@modelcontextprotocol/sdk/client/index.js");
+    const { StreamableHTTPClientTransport } = await import(
+      "@modelcontextprotocol/sdk/client/streamableHttp.js"
+    );
+
+    const prompt = `Professional book cover hero image for "${meta.title}". ${meta.niche ? `Topic: ${meta.niche}.` : ""} Modern, clean design, premium look, dark background with vibrant accent colors. No text, no words, no letters. Minimalist composition with dramatic lighting. Cinematic quality, 8K, professional book cover style.`;
+
+    const transport = new StreamableHTTPClientTransport(new URL("https://mcp.magnific.com"), {
+      headers: { Authorization: `Bearer ${MAGNIFIC_API_KEY}` },
+    });
+
+    const client = new Client(
+      { name: "launchpad-engine", version: "1.0.0" },
+      { capabilities: {} },
+    );
+
     await client.connect(transport);
 
     const result = await client.request(
@@ -29,31 +46,16 @@ export async function generateHeroImage(meta: {
         method: "tools/call",
         params: {
           name: "generate-image",
-          arguments: {
-            prompt,
-            aspect_ratio: "3:2",
-            style: "photographic",
-            negative_prompt: "text, words, letters, watermark, signature, low quality, blurry",
-          },
+          arguments: { prompt, aspect_ratio: "3:2", style: "photographic", negative_prompt: "text, words, letters, watermark, signature, low quality, blurry" },
         },
       },
       {},
     );
 
     const content = result.content?.[0] as any;
-    const imageUrl = content?.data?.url || content?.url || content?.text || null;
-
-    return imageUrl;
+    return content?.data?.url || content?.url || content?.text || null;
   } catch (error) {
     console.error("[image-generator] Magnific error:", error);
     return null;
-  } finally {
-    await client.close().catch(() => {});
   }
-}
-
-function buildImagePrompt(meta: { title: string; subtitle?: string; niche?: string }): string {
-  const title = meta.title || "";
-  const niche = meta.niche || "";
-  return `Professional book cover hero image for "${title}". ${niche ? `Topic: ${niche}.` : ""} Modern, clean design, premium look, dark background with vibrant accent colors. No text, no words, no letters. Minimalist composition with dramatic lighting. Cinematic quality, 8K, professional book cover style.`;
 }
