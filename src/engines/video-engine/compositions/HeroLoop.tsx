@@ -104,14 +104,18 @@ export const HeroLoop: React.FC<VideoProps> = ({
 
         <div
           style={{
-            fontSize: 64,
+            fontSize: 56,
             fontWeight: 800,
             color: theme.white,
             letterSpacing: "-0.02em",
-            lineHeight: 1.08,
-            maxWidth: 980,
+            lineHeight: 1.1,
+            maxWidth: 1000,
             opacity: headlineOpacity,
             textShadow: "0 8px 40px rgba(0,0,0,.5)",
+            display: "-webkit-box",
+            WebkitBoxOrient: "vertical",
+            WebkitLineClamp: 3,
+            overflow: "hidden",
           }}
         >
           {headline || title}
