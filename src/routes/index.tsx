@@ -145,9 +145,19 @@ function ConversionEngineApp() {
     reader.readAsText(file);
   }
 
-  function download() {
+  async function download() {
     if (!html) return;
-    const file = new Blob([html], { type: "text/html;charset=utf-8" });
+    const file = new File([html], "index.html", { type: "text/html;charset=utf-8" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "index.html" });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
+
     const url = URL.createObjectURL(file);
     const a = document.createElement("a");
     a.href = url;
@@ -157,6 +167,7 @@ function ConversionEngineApp() {
     document.body.appendChild(a);
     a.click();
     a.remove();
+    window.open(url, "_blank", "noopener,noreferrer");
     window.setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
