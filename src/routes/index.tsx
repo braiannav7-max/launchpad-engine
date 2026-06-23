@@ -458,7 +458,7 @@ function ConversionEngineApp() {
             ) : view === "preview" ? (
               <iframe
                 title="Landing preview"
-                src={blobUrl ?? undefined}
+                srcDoc={html}
                 className="w-full h-full border-0 bg-white"
               />
             ) : (
