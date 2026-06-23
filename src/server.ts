@@ -42,6 +42,7 @@ const InputSchema = z.object({
   meta: MetaSchema,
   templateId: z.string().optional(),
   skipReview: z.boolean().optional(),
+  skipImage: z.boolean().optional(),
 });
 
 async function handleApiGenerate(request: Request): Promise<Response> {
@@ -57,9 +58,10 @@ async function handleApiGenerate(request: Request): Promise<Response> {
       meta,
       templateId: data.templateId,
       skipReview: data.skipReview,
+      skipImage: data.skipImage,
     });
 
-    return new Response(JSON.stringify({ html: result.html }), {
+    return new Response(JSON.stringify({ html: result.html, heroImageUrl: result.heroImageUrl ?? null }), {
       status: 200,
       headers: { "content-type": "application/json; charset=utf-8" },
     });
