@@ -77,6 +77,7 @@ function ConversionEngineApp() {
   const [view, setView] = useState<"preview" | "code">("preview");
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
 
   const blobUrl = useMemo(() => {
     if (!html) return null;
@@ -118,6 +119,10 @@ function ConversionEngineApp() {
       setView("preview");
       toast.success("Landing generada", {
         description: "Tu index.html está listo para descargar.",
+      });
+      // En mobile el preview está debajo del form — hacer scroll para que el usuario lo vea.
+      requestAnimationFrame(() => {
+        previewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
       });
     } catch (e) {
       console.error(e);
@@ -420,7 +425,7 @@ function ConversionEngineApp() {
           </Card>
         </section>
 
-        <section className="space-y-4">
+        <section ref={previewRef} className="space-y-4 scroll-mt-20">
           <div className="flex items-center justify-between gap-2 flex-wrap">
             <div className="flex items-center gap-1 rounded-lg border border-border bg-card p-1">
               <button
