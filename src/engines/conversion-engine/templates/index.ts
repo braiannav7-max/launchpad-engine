@@ -1,9 +1,11 @@
 import type { LandingTemplate } from "../types";
 import { ebookLandingTemplate } from "./ebook-landing";
+import { ebookLandingPremiumTemplate } from "./ebook-landing-premium";
 
 // Registry — add new templates here without touching engine logic.
 export const templates: Record<string, LandingTemplate> = {
   "ebook-landing-01": ebookLandingTemplate,
+  "ebook-landing-premium-01": ebookLandingPremiumTemplate,
 };
 
 export function getTemplate(id: string): LandingTemplate {

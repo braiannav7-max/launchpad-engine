@@ -15,6 +15,7 @@ const MetaSchema = z.object({
   objective: z.string().optional(),
   coverImage: z.string().optional(),
   mockupImage: z.string().optional(),
+  heroVideo: z.string().optional(),
   buyLink: z.string().optional(),
   brandName: z.string().optional(),
   brandLogo: z.string().optional(),

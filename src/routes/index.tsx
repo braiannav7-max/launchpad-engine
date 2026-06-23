@@ -18,8 +18,11 @@ import {
   Loader2,
   Eye,
   Code2,
+  Clapperboard,
 } from "lucide-react";
 import { generateLandingFn } from "@/lib/conversion.functions";
+import { VideoStudio } from "@/components/video-studio";
+import { pipelineToVideoProps, type VideoProps } from "@/engines/video-engine";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -74,7 +77,8 @@ function ConversionEngineApp() {
   const [form, setForm] = useState<FormState>(initialForm);
   const [jsonInput, setJsonInput] = useState("");
   const [html, setHtml] = useState<string | null>(null);
-  const [view, setView] = useState<"preview" | "code">("preview");
+  const [videoProps, setVideoProps] = useState<VideoProps | null>(null);
+  const [view, setView] = useState<"preview" | "code" | "video">("preview");
   const [loading, setLoading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -108,9 +112,18 @@ function ConversionEngineApp() {
     }
     setLoading(true);
     setHtml(null);
+    setVideoProps(null);
     try {
-      const result = await generate({ data: { meta } });
+      const result = await generate({
+        data: { meta, templateId: "ebook-landing-premium-01" },
+      });
       setHtml(result.html);
+      // Reusamos el contenido del pipeline para alimentar los videos.
+      try {
+        setVideoProps(pipelineToVideoProps({ meta, content: result.content }));
+      } catch {
+        setVideoProps(null);
+      }
       setView("preview");
       toast.success("Landing generada", {
         description: "Tu index.html está listo para descargar.",
@@ -452,6 +465,12 @@ function ConversionEngineApp() {
               >
                 <Code2 className="h-4 w-4" /> HTML
               </button>
+              <button
+                onClick={() => setView("video")}
+                className={`px-3 py-1.5 rounded-md text-sm flex items-center gap-2 transition-colors ${view === "video" ? "bg-primary text-primary-foreground" : "hover:bg-accent"}`}
+              >
+                <Clapperboard className="h-4 w-4" /> Video
+              </button>
             </div>
             <Button
               onClick={download}
@@ -464,7 +483,9 @@ function ConversionEngineApp() {
           </div>
 
           <Card className="overflow-hidden h-[78vh]">
-            {!html ? (
+            {view === "video" ? (
+              <VideoStudio videoProps={videoProps} />
+            ) : !html ? (
               <EmptyState loading={loading} />
             ) : view === "preview" ? (
               <iframe

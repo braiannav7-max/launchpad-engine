@@ -10,6 +10,8 @@ export interface EbookMetadata {
   objective?: string;
   coverImage?: string; // URL or data URI
   mockupImage?: string;
+  /** Video de hero pre-renderizado (loop). Si está, el template premium lo usa. */
+  heroVideo?: string;
   buyLink?: string;
   brandName?: string;
   brandLogo?: string;
@@ -59,6 +61,8 @@ export interface TemplateVars extends Record<string, string> {
   SUBHEADLINE: string;
   COVER_IMAGE: string;
   MOCKUP_IMAGE: string;
+  /** Markup del medio del hero: <video> si hay heroVideo, si no <img> de portada. */
+  HERO_MEDIA: string;
   CTA: string;
   CTA_SECONDARY: string;
   BUY_LINK: string;

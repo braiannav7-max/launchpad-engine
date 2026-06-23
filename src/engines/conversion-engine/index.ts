@@ -71,6 +71,20 @@ export interface BuildLandingInput {
   templateId?: string;
 }
 
+/** Construye el markup del medio del hero: <video> loop si hay, si no <img>. */
+function heroMediaHtml(meta: EbookMetadata): string {
+  const cover = meta.coverImage || meta.mockupImage || "";
+  if (meta.heroVideo) {
+    const poster = cover ? ` poster="${escapeHtml(cover)}"` : "";
+    return `<video class="hero-media" autoplay loop muted playsinline${poster}><source src="${escapeHtml(
+      meta.heroVideo,
+    )}" type="video/webm" /></video>`;
+  }
+  return `<img class="hero-media" src="${escapeHtml(cover)}" alt="${escapeHtml(
+    meta.title,
+  )}" loading="eager" />`;
+}
+
 export function buildVars(input: BuildLandingInput): TemplateVars {
   const { meta, content } = input;
   return {
@@ -79,6 +93,7 @@ export function buildVars(input: BuildLandingInput): TemplateVars {
     SUBHEADLINE: content.subheadline,
     COVER_IMAGE: meta.coverImage || "",
     MOCKUP_IMAGE: meta.mockupImage || meta.coverImage || "",
+    HERO_MEDIA: heroMediaHtml(meta),
     CTA: content.cta,
     CTA_SECONDARY: content.ctaSecondary,
     BUY_LINK: meta.buyLink || "#comprar",
