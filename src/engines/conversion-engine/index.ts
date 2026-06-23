@@ -9,7 +9,15 @@ import { extractContent } from "./extractor";
 import { getTemplate } from "./templates";
 import { escapeHtml } from "./template-engine";
 
-export type { EbookMetadata, ExtractedContent, LandingContent } from "./types";
+export type {
+  EbookMetadata,
+  ExtractedContent,
+  LandingContent,
+  ProductType,
+  EnrichedProductAnalysis,
+  ReviewResult,
+  PipelineResult,
+} from "./types";
 export { listTemplates } from "./templates";
 
 function painPointsHtml(points: string[]): string {

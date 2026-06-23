@@ -1,9 +1,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import {
-  extract,
-  renderLanding,
   type EbookMetadata,
+  type EnrichedProductAnalysis,
+  type ReviewResult,
 } from "@/engines/conversion-engine";
 
 const MetaSchema = z.object({
@@ -27,6 +27,7 @@ const MetaSchema = z.object({
 const InputSchema = z.object({
   meta: MetaSchema,
   templateId: z.string().optional(),
+  skipReview: z.boolean().optional(),
 });
 
 export const generateLandingFn = createServerFn({ method: "POST" })
@@ -34,17 +35,19 @@ export const generateLandingFn = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     const meta = data.meta as EbookMetadata;
 
-    // ETAPA 1
-    const extracted = extract(meta);
-
-    // ETAPA 2 — IA (solo contenido JSON)
-    const { generateLandingContent } = await import(
-      "@/engines/conversion-engine/generator.server"
+    const { runPipeline } = await import(
+      "@/engines/conversion-engine/agents/pipeline"
     );
-    const content = await generateLandingContent(extracted);
+    const result = await runPipeline({
+      meta,
+      templateId: data.templateId,
+      skipReview: data.skipReview,
+    });
 
-    // ETAPA 3 — Template Engine (puro reemplazo)
-    const html = renderLanding({ meta, content, templateId: data.templateId });
-
-    return { html, content, extracted };
+    return {
+      html: result.html,
+      content: result.content,
+      analysis: result.analysis,
+      review: result.review,
+    };
   });

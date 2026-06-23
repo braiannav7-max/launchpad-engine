@@ -88,3 +88,44 @@ export interface LandingTemplate {
   description: string;
   render: (vars: TemplateVars) => string;
 }
+
+// ─── Agent Layer types ───────────────────────────────────────────────
+
+export type ProductType =
+  | "ebook"
+  | "digital_product"
+  | "physical_product"
+  | "service"
+  | "course"
+  | "coaching"
+  | "software"
+  | "custom";
+
+export interface EnrichedProductAnalysis {
+  productType: ProductType;
+  persuasionAngles: { name: string; description: string; hook: string }[];
+  enrichedAvatar: string;
+  keyObjections: { objection: string; rebuttal: string }[];
+  differentiation: string;
+  emotionalTriggers: string[];
+  toneOfVoice: string;
+  pricePositioning: string;
+}
+
+export interface ReviewResult {
+  score: number;
+  summary: string;
+  strengths: string[];
+  improvements: {
+    field: keyof LandingContent;
+    suggestion: string;
+    priority: "high" | "medium" | "low";
+  }[];
+}
+
+export interface PipelineResult {
+  analysis: EnrichedProductAnalysis;
+  content: LandingContent;
+  review: ReviewResult;
+  html: string;
+}
