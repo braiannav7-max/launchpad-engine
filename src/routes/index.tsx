@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
 import { Toaster } from "@/components/ui/sonner";
 import { Button } from "@/components/ui/button";
@@ -79,11 +79,6 @@ function ConversionEngineApp() {
   const fileRef = useRef<HTMLInputElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
-  const blobUrl = useMemo(() => {
-    if (!html) return null;
-    return URL.createObjectURL(new Blob([html], { type: "text/html" }));
-  }, [html]);
-
   function buildMetaFromForm() {
     return {
       title: form.title.trim(),
@@ -150,13 +145,30 @@ function ConversionEngineApp() {
     reader.readAsText(file);
   }
 
-  function download() {
+  async function download() {
     if (!html) return;
+    const file = new File([html], "index.html", { type: "text/html;charset=utf-8" });
+
+    if (navigator.canShare?.({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: "index.html" });
+        return;
+      } catch (e) {
+        if (e instanceof DOMException && e.name === "AbortError") return;
+      }
+    }
+
+    const url = URL.createObjectURL(file);
     const a = document.createElement("a");
-    a.href = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+    a.href = url;
     a.download = "index.html";
+    a.rel = "noopener";
+    a.style.display = "none";
+    document.body.appendChild(a);
     a.click();
-    URL.revokeObjectURL(a.href);
+    a.remove();
+    window.open(url, "_blank", "noopener,noreferrer");
+    window.setTimeout(() => URL.revokeObjectURL(url), 30000);
   }
 
   function loadDemo() {
@@ -457,7 +469,7 @@ function ConversionEngineApp() {
             ) : view === "preview" ? (
               <iframe
                 title="Landing preview"
-                src={blobUrl ?? undefined}
+                srcDoc={html}
                 className="w-full h-full border-0 bg-white"
               />
             ) : (
